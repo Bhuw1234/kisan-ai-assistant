@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 font-sans;
+}
+
+/* Custom Utilities for "Farmer Friendly" UI */
+.btn-primary {
+  @apply bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center justify-center gap-2 text-lg;
+}
+
+.btn-secondary {
+  @apply bg-white hover:bg-slate-50 text-emerald-700 border-2 border-emerald-600 font-bold py-4 px-6 rounded-2xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 text-lg;
+}
+
+.card {
+  @apply bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60;
+}
+
+.input-field {
+  @apply w-full p-4 text-lg bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all;
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Kisan AI Assistant",
+  "description": "A voice-enabled, location-aware AI platform for Indian farmers providing scheme suggestions, crop advisory, and mandi prices.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
