@@ -4,10 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 // Load .env for local development
-if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-  import('dotenv/config');
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  dotenv.config();
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -199,7 +200,9 @@ app.get('/api/mandi', (req, res) => {
 
 // --- Static Files & SPA Fallback ---
 async function createViteApp() {
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  
+  if (isProduction) {
     // Serve static files in production
     app.use(express.static(path.join(__dirname, 'dist')));
     
@@ -222,7 +225,7 @@ async function startServer() {
   await createViteApp();
   
   // For local development only
-  if (process.env.VERCEL !== '1') {
+  if (!process.env.VERCEL) {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
