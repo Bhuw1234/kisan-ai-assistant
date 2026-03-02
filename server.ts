@@ -221,20 +221,17 @@ async function createViteApp() {
   }
 }
 
-// --- Start Server ---
-async function startServer() {
-  await createViteApp();
-  
-  // For local development only
-  if (!process.env.VERCEL) {
+// --- Start Server (Local only) ---
+// For Vercel serverless, we don't need to start a server
+// The app is exported and Vercel handles the requests
+if (!process.env.VERCEL) {
+  createViteApp().then(() => {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
-  }
+  });
 }
-
-startServer();
 
 // Export for Vercel
 export default app;
