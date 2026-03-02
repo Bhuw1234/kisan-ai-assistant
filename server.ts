@@ -5,24 +5,29 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Load .env for local development
+if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+  import('dotenv/config');
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-console.log('ENV - SUPABASE_URL:', process.env.SUPABASE_URL ? 'set' : 'NOT SET');
-console.log('ENV - SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'set' : 'NOT SET');
-console.log('ENV - GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'set' : 'NOT SET');
+// --- Express Setup ---
+const app = express();
+app.use(express.json());
 
 // Initialize Supabase - check both naming conventions for Vercel
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('ERROR: SUPABASE_URL or SUPABASE_ANON_KEY not found in environment!');
-}
+console.log('ENV - SUPABASE_URL:', supabaseUrl ? 'set' : 'NOT SET');
+console.log('ENV - SUPABASE_ANON_KEY:', supabaseAnonKey ? 'set' : 'NOT SET');
+console.log('ENV - GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'set' : 'NOT SET');
 
 const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
 console.log('Supabase configured:', supabase ? 'connected' : 'not configured');
 
-// Initialize Gemini - check both for Vercel
+// Initialize Gemini
 const apiKey = process.env.GEMINI_API_KEY || '';
 if (!apiKey) {
   console.error('WARNING: GEMINI_API_KEY not found in environment!');
@@ -30,10 +35,6 @@ if (!apiKey) {
   console.log('API Key loaded:', apiKey.substring(0, 10) + '...');
 }
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
-const app = express();
-
-app.use(express.json());
 
 // --- API Routes ---
 
@@ -159,7 +160,7 @@ app.post('/api/chat', async (req, res) => {
     const text = response.text;
     
     // Log interaction
-    if (userContext?.id) {
+    if (supabase && userContext?.id) {
       await supabase
         .from('interactions')
         .insert([
@@ -198,7 +199,7 @@ app.get('/api/mandi', (req, res) => {
 
 // --- Static Files & SPA Fallback ---
 async function createViteApp() {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
     // Serve static files in production
     app.use(express.static(path.join(__dirname, 'dist')));
     
@@ -216,19 +217,11 @@ async function createViteApp() {
   }
 }
 
-// --- Setup Vite ---
-async function setupVite(app: express.Express) {
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: 'spa',
-  });
-  app.use(vite.middlewares);
-}
-
+// --- Start Server ---
 async function startServer() {
   await createViteApp();
   
-  // For local development
+  // For local development only
   if (process.env.VERCEL !== '1') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
