@@ -9,23 +9,24 @@ import 'dotenv/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Initialize Supabase
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// Initialize Supabase - check both naming conventions for Vercel
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('ERROR: SUPABASE_URL or SUPABASE_ANON_KEY not found in environment!');
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
-console.log('Supabase configured:', supabaseUrl ? 'connected' : 'not configured');
+const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
+console.log('Supabase configured:', supabase ? 'connected' : 'not configured');
 
-// Initialize Gemini
-const apiKey = process.env.GEMINI_API_KEY;
+// Initialize Gemini - check both for Vercel
+const apiKey = process.env.GEMINI_API_KEY || '';
 if (!apiKey) {
   console.error('WARNING: GEMINI_API_KEY not found in environment!');
+} else {
+  console.log('API Key loaded:', apiKey.substring(0, 10) + '...');
 }
-console.log('API Key loaded:', apiKey ? apiKey.substring(0, 10) + '...' : 'NOT SET');
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const app = express();
@@ -37,6 +38,11 @@ app.use(express.json());
 // 1. User Profile
 app.post('/api/user', async (req, res) => {
   try {
+    if (!supabase) {
+      res.status(500).json({ error: 'Database not configured' });
+      return;
+    }
+    
     const { name, state, district, land_size, crops, income_category, preferred_language } = req.body;
     
     const { data, error } = await supabase
@@ -65,6 +71,11 @@ app.post('/api/user', async (req, res) => {
 
 app.get('/api/user/:id', async (req, res) => {
   try {
+    if (!supabase) {
+      res.status(500).json({ error: 'Database not configured' });
+      return;
+    }
+    
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -89,6 +100,11 @@ app.get('/api/user/:id', async (req, res) => {
 // 2. Schemes Finder
 app.post('/api/schemes/find', async (req, res) => {
   try {
+    if (!supabase) {
+      res.status(500).json({ error: 'Database not configured' });
+      return;
+    }
+    
     const { state } = req.body;
     
     const { data, error } = await supabase
