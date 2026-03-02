@@ -198,7 +198,12 @@ async function createViteApp() {
   }
 }
 
-createViteApp();
+createViteApp().then(() => {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+  });
+});
 
 // Export for Vercel
 export default app;
