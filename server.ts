@@ -4,10 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
-import 'dotenv/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+console.log('ENV - SUPABASE_URL:', process.env.SUPABASE_URL ? 'set' : 'NOT SET');
+console.log('ENV - SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'set' : 'NOT SET');
+console.log('ENV - GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'set' : 'NOT SET');
 
 // Initialize Supabase - check both naming conventions for Vercel
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
