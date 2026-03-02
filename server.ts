@@ -4,12 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-// Load .env for local development
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  dotenv.config();
-}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
