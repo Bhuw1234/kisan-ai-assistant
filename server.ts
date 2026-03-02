@@ -197,12 +197,19 @@ async function createViteApp() {
   const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
   
   if (isProduction) {
+    // Determine the correct base path for Vercel
+    const distPath = process.env.VERCEL 
+      ? path.join(process.cwd(), 'dist')
+      : path.join(__dirname, 'dist');
+    
+    console.log('Serving static files from:', distPath);
+    
     // Serve static files in production
-    app.use(express.static(path.join(__dirname, 'dist')));
+    app.use(express.static(distPath));
     
     // Handle SPA - serve index.html for all non-API routes
     app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   } else {
     // Development mode with Vite middleware
