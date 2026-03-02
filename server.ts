@@ -198,18 +198,28 @@ async function createViteApp() {
   }
 }
 
-// Only listen on local development, Vercel handles it differently
-if (process.env.NODE_ENV !== 'production') {
-  createViteApp().then(() => {
+// --- Setup Vite ---
+async function setupVite(app: express.Express) {
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: 'spa',
+  });
+  app.use(vite.middlewares);
+}
+
+async function startServer() {
+  await createViteApp();
+  
+  // For local development
+  if (process.env.VERCEL !== '1') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
-  });
-} else {
-  // Production: just set up the Vite app
-  createViteApp();
+  }
 }
+
+startServer();
 
 // Export for Vercel
 export default app;
