@@ -46,14 +46,14 @@ app.get('/api/test-fetch', async (req, res) => {
 app.get('/api/test-supabase', async (req, res) => {
   try {
     console.log('Testing Supabase fetch...');
-    console.log('URL:', `${supabaseUrl}/rest/v1/users?select=count&limit=1`);
+    console.log('SUPABASE_URL:', supabaseUrl);
+    console.log('SUPABASE_ANON_KEY set:', !!supabaseAnonKey);
     
     const response = await fetch(`${supabaseUrl}/rest/v1/users?select=count&limit=1`, {
       headers: {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Accept': 'application/json'
       }
     });
     
@@ -61,10 +61,10 @@ app.get('/api/test-supabase', async (req, res) => {
     const data = await response.text();
     console.log('Response data:', data);
     
-    res.json({ success: true, data, status: response.status });
+    res.json({ success: true, data, status: response.status, url: supabaseUrl });
   } catch (error: any) {
     console.error('Supabase fetch error:', error);
-    res.status(500).json({ success: false, error: error?.message || String(error) });
+    res.status(500).json({ success: false, error: error?.message || String(error), url: supabaseUrl });
   }
 });
 
