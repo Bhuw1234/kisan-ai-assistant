@@ -46,13 +46,21 @@ app.get('/api/test-fetch', async (req, res) => {
 app.get('/api/test-supabase', async (req, res) => {
   try {
     console.log('Testing Supabase fetch...');
+    console.log('URL:', `${supabaseUrl}/rest/v1/users?select=count&limit=1`);
+    
     const response = await fetch(`${supabaseUrl}/rest/v1/users?select=count&limit=1`, {
       headers: {
         'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
     });
-    const data = await response.json();
+    
+    console.log('Response status:', response.status);
+    const data = await response.text();
+    console.log('Response data:', data);
+    
     res.json({ success: true, data, status: response.status });
   } catch (error: any) {
     console.error('Supabase fetch error:', error);
