@@ -4,6 +4,10 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { fetch } from 'undici';
+
+// Make fetch available globally for Supabase client
+(globalThis as any).fetch = fetch;
 
 // Load .env for local development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
