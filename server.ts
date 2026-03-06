@@ -68,9 +68,9 @@ app.get('/api/test-supabase', async (req, res) => {
   }
 });
 
-// Initialize Supabase
-const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+// Initialize Supabase - prioritize NEXT_PUBLIC_ versions as they have correct values
+const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
 const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
 console.log('=== Environment Debug ===');
