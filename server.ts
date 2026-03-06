@@ -1,9 +1,14 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// Load .env for local development
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  dotenv.config();
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,29 +16,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
-// Test endpoint - no external dependencies
+// Test endpoint
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'API is working!' });
+  res.json({ 
+    message: 'API is working!',
+    supabaseConfigured: !!supabase,
+    geminiConfigured: !!ai
+  });
 });
 
-// Initialize Supabase - check both naming conventions for Vercel
+// Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-console.log('ENV - SUPABASE_URL:', supabaseUrl ? 'set' : 'NOT SET');
-console.log('ENV - SUPABASE_ANON_KEY:', supabaseAnonKey ? 'set' : 'NOT SET');
-console.log('ENV - GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'set' : 'NOT SET');
+console.log('SUPABASE_URL:', supabaseUrl ? 'set' : 'NOT SET');
 
 const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
-console.log('Supabase configured:', supabase ? 'connected' : 'not configured');
 
 // Initialize Gemini
 const apiKey = process.env.GEMINI_API_KEY || '';
-if (!apiKey) {
-  console.error('WARNING: GEMINI_API_KEY not found in environment!');
-} else {
-  console.log('API Key loaded:', apiKey.substring(0, 10) + '...');
-}
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // --- API Routes ---
@@ -198,43 +199,28 @@ app.get('/api/mandi', (req, res) => {
 });
 
 // --- Static Files & SPA Fallback ---
-async function createViteApp() {
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+
+if (isProduction) {
+  // Determine the correct base path for Vercel
+  const distPath = process.env.VERCEL 
+    ? path.join(process.cwd(), 'dist')
+    : path.join(__dirname, 'dist');
   
-  if (isProduction) {
-    // Determine the correct base path for Vercel
-    const distPath = process.env.VERCEL 
-      ? path.join(process.cwd(), 'dist')
-      : path.join(__dirname, 'dist');
-    
-    console.log('Serving static files from:', distPath);
-    
-    // Serve static files in production
-    app.use(express.static(distPath));
-    
-    // Handle SPA - serve index.html for all non-API routes
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  } else {
-    // Development mode with Vite middleware
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  }
+  // Serve static files in production
+  app.use(express.static(distPath));
+  
+  // Handle SPA - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
 }
 
 // --- Start Server (Local only) ---
-// For Vercel serverless, we don't need to start a server
-// The app is exported and Vercel handles the requests
 if (!process.env.VERCEL) {
-  createViteApp().then(() => {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running at http://localhost:${PORT}`);
-    });
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
   });
 }
 
