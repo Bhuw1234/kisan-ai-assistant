@@ -50,38 +50,44 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 // 1. User Profile
 app.post('/api/user', async (req, res) => {
   try {
-    if (!supabase) {
-      res.status(500).json({ error: 'Database not configured', supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
+    if (!supabaseUrl || !supabaseAnonKey) {
+      res.status(500).json({ error: 'Database not configured' });
       return;
     }
     
     const { name, state, district, land_size, crops, income_category, preferred_language } = req.body;
     
-    console.log('Creating user with data:', { name, state, district, land_size, crops, income_category, preferred_language });
+    console.log('Creating user with data:', { name, state, district });
     
-    const { data, error } = await supabase
-      .from('users')
-      .insert([
-        {
-          name,
-          state,
-          district,
-          land_size,
-          crops: JSON.stringify(crops),
-          income_category,
-          preferred_language
-        }
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase insert error:', error);
-      throw error;
+    // Use direct REST API call instead of Supabase client
+    const response = await fetch(`${supabaseUrl}/rest/v1/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        name,
+        state,
+        district,
+        land_size,
+        crops: JSON.stringify(crops),
+        income_category,
+        preferred_language
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('Supabase error:', data);
+      throw new Error(data.message || 'Failed to create user');
     }
     
     console.log('User created successfully:', data);
-    res.json({ id: data.id, success: true });
+    res.json({ id: data[0]?.id, success: true });
   } catch (error: any) {
     console.error('Error saving user:', error);
     res.status(500).json({ error: 'Failed to save profile', details: error?.message || String(error) });
