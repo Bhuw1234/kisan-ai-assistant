@@ -29,6 +29,19 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Debug endpoint to test fetch
+app.get('/api/test-fetch', async (req, res) => {
+  try {
+    console.log('Testing fetch...');
+    const response = await fetch('https://httpbin.org/get');
+    const data = await response.json();
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Fetch error:', error);
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
