@@ -31,7 +31,11 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC
 
 console.log('SUPABASE_URL:', supabaseUrl ? 'set' : 'NOT SET');
 
-const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    fetch: (url: any, options: any) => fetch(url, options)
+  }
+}) : null;
 
 // Initialize Gemini
 const apiKey = process.env.GEMINI_API_KEY || '';
