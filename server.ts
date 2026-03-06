@@ -43,11 +43,13 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 app.post('/api/user', async (req, res) => {
   try {
     if (!supabase) {
-      res.status(500).json({ error: 'Database not configured' });
+      res.status(500).json({ error: 'Database not configured', supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
       return;
     }
     
     const { name, state, district, land_size, crops, income_category, preferred_language } = req.body;
+    
+    console.log('Creating user with data:', { name, state, district, land_size, crops, income_category, preferred_language });
     
     const { data, error } = await supabase
       .from('users')
@@ -65,11 +67,16 @@ app.post('/api/user', async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
+    
+    console.log('User created successfully:', data);
     res.json({ id: data.id, success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving user:', error);
-    res.status(500).json({ error: 'Failed to save profile' });
+    res.status(500).json({ error: 'Failed to save profile', details: error?.message || String(error) });
   }
 });
 
