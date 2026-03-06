@@ -71,8 +71,13 @@ app.get('/api/test-supabase', async (req, res) => {
 // Initialize Supabase
 const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
 const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-console.log('SUPABASE_URL:', supabaseUrl ? 'set' : 'NOT SET');
+console.log('=== Environment Debug ===');
+console.log('SUPABASE_URL:', supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NOT SET');
+console.log('SUPABASE_ANON_KEY set:', !!supabaseAnonKey, supabaseAnonKey ? `(${supabaseAnonKey.substring(0, 10)}...)` : '');
+console.log('GEMINI_API_KEY set:', !!geminiApiKey, geminiApiKey ? `(${geminiApiKey.substring(0, 10)}...)` : '');
+console.log('=========================');
 
 const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey, {
   global: {
