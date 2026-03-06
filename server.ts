@@ -4,10 +4,6 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { fetch } from 'undici';
-
-// Make fetch available globally for Supabase client
-(globalThis as any).fetch = fetch;
 
 // Load .env for local development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
@@ -29,64 +25,14 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Debug endpoint to test fetch
-app.get('/api/test-fetch', async (req, res) => {
-  try {
-    console.log('Testing fetch...');
-    const response = await fetch('https://httpbin.org/get');
-    const data = await response.json();
-    res.json({ success: true, data });
-  } catch (error: any) {
-    console.error('Fetch error:', error);
-    res.status(500).json({ success: false, error: error?.message || String(error) });
-  }
-});
-
-// Debug endpoint to test Supabase fetch
-app.get('/api/test-supabase', async (req, res) => {
-  try {
-    console.log('Testing Supabase fetch...');
-    console.log('SUPABASE_URL:', supabaseUrl);
-    console.log('SUPABASE_ANON_KEY set:', !!supabaseAnonKey);
-    
-    const response = await fetch(`${supabaseUrl}/rest/v1/users?select=count&limit=1`, {
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Accept': 'application/json'
-      }
-    });
-    
-    console.log('Response status:', response.status);
-    const data = await response.text();
-    console.log('Response data:', data);
-    
-    res.json({ success: true, data, status: response.status, url: supabaseUrl });
-  } catch (error: any) {
-    console.error('Supabase fetch error:', error);
-    res.status(500).json({ success: false, error: error?.message || String(error), url: supabaseUrl });
-  }
-});
-
 // Initialize Supabase - prioritize NEXT_PUBLIC_ versions as they have correct values
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
 const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
-const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-console.log('=== Environment Debug ===');
-console.log('SUPABASE_URL:', supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NOT SET');
-console.log('SUPABASE_ANON_KEY set:', !!supabaseAnonKey, supabaseAnonKey ? `(${supabaseAnonKey.substring(0, 10)}...)` : '');
-console.log('GEMINI_API_KEY set:', !!geminiApiKey, geminiApiKey ? `(${geminiApiKey.substring(0, 10)}...)` : '');
-console.log('=========================');
-
-const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey, {
-  global: {
-    fetch: (url: any, options: any) => fetch(url, options)
-  }
-}) : null;
+const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // Initialize Gemini
-const apiKey = process.env.GEMINI_API_KEY || '';
+const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // --- API Routes ---
@@ -94,44 +40,31 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 // 1. User Profile
 app.post('/api/user', async (req, res) => {
   try {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabase) {
       res.status(500).json({ error: 'Database not configured' });
       return;
     }
     
     const { name, state, district, land_size, crops, income_category, preferred_language } = req.body;
     
-    console.log('Creating user with data:', { name, state, district });
-    
-    // Use direct REST API call instead of Supabase client
-    const response = await fetch(`${supabaseUrl}/rest/v1/users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({
-        name,
-        state,
-        district,
-        land_size,
-        crops: JSON.stringify(crops),
-        income_category,
-        preferred_language
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Supabase error:', data);
-      throw new Error(data.message || 'Failed to create user');
-    }
-    
-    console.log('User created successfully:', data);
-    res.json({ id: data[0]?.id, success: true });
+    const { data, error } = await supabase
+      .from('users')
+      .insert([
+        {
+          name,
+          state,
+          district,
+          land_size,
+          crops: JSON.stringify(crops),
+          income_category,
+          preferred_language
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ id: data.id, success: true });
   } catch (error: any) {
     console.error('Error saving user:', error);
     res.status(500).json({ error: 'Failed to save profile', details: error?.message || String(error) });
@@ -267,15 +200,12 @@ app.get('/api/mandi', (req, res) => {
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
 
 if (isProduction) {
-  // Determine the correct base path for Vercel
   const distPath = process.env.VERCEL 
     ? path.join(process.cwd(), 'dist')
     : path.join(__dirname, 'dist');
   
-  // Serve static files in production
   app.use(express.static(distPath));
   
-  // Handle SPA - serve index.html for all non-API routes
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
