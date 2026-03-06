@@ -42,6 +42,24 @@ app.get('/api/test-fetch', async (req, res) => {
   }
 });
 
+// Debug endpoint to test Supabase fetch
+app.get('/api/test-supabase', async (req, res) => {
+  try {
+    console.log('Testing Supabase fetch...');
+    const response = await fetch(`${supabaseUrl}/rest/v1/users?select=count&limit=1`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }
+    });
+    const data = await response.json();
+    res.json({ success: true, data, status: response.status });
+  } catch (error: any) {
+    console.error('Supabase fetch error:', error);
+    res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
