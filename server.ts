@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import multer from 'multer';
 
 // Load .env for local development
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,6 +16,9 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Multer for handling multipart/form-data
+const upload = multer();
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -35,28 +39,133 @@ const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-// Language to name mapping for AI prompts
-const languageNames: Record<string, string> = {
-  'en': 'English',
-  'hi': 'Hindi',
-  'bn': 'Bengali',
-  'te': 'Telugu',
-  'mr': 'Marathi',
-  'ta': 'Tamil',
-  'gu': 'Gujarati',
-  'kn': 'Kannada',
-  'ml': 'Malayalam',
-  'pa': 'Punjabi',
-  'or': 'Odia',
-  'as': 'Assamese',
-  'ur': 'Urdu',
-  'sd': 'Sindhi',
-  'sa': 'Sanskrit',
-  'konkani': 'Konkani',
-  'dogri': 'Dogri',
-  'santali': 'Santali',
-  'kashmiri': 'Kashmiri',
-  'nepali': 'Nepali',
+// Comprehensive language configuration for AI prompts
+const languageConfig: Record<string, {
+  name: string;
+  nativePrompt: string;
+  greeting: string;
+  fallback: string;
+}> = {
+  en: {
+    name: 'English',
+    nativePrompt: 'Respond in English only.',
+    greeting: 'Namaste! How can I help you?',
+    fallback: 'Sorry, I am having trouble connecting to the internet.'
+  },
+  hi: {
+    name: 'Hindi',
+    nativePrompt: 'केवल हिंदी में जवाब दें। सरल भाषा का प्रयोग करें।',
+    greeting: 'नमस्ते! मैं आपकी कैसे मदद कर सकता हूं?',
+    fallback: 'क्षमा करें, मुझे इंटरनेट से जुड़ने में समस्या हो रही है।'
+  },
+  bn: {
+    name: 'Bengali',
+    nativePrompt: 'শুধুমাত্র বাংলায় উত্তর দিন। সহজ ভাষা ব্যবহার করুন।',
+    greeting: 'নমস্কার! আমি কীভাবে সাহায্য করতে পারি?',
+    fallback: 'দুঃখিত, ইন্টারনেটে সংযোগ করতে সমস্যা হচ্ছে।'
+  },
+  te: {
+    name: 'Telugu',
+    nativePrompt: 'కేవలం తెలుగులో మాత్రమే స్పందించండి। సులభమైన భాష వాడండి।',
+    greeting: 'నమస్కారం! నేను ఎలా సహాయం చేయగలను?',
+    fallback: 'క్షమించండి, ఇంటర్నెట్‌కి కనెక్ట్ కావడంలో సమస్య ఉంది।'
+  },
+  mr: {
+    name: 'Marathi',
+    nativePrompt: 'केवळ मराठीत उत्तर द्या। सोपी भाषा वापरा।',
+    greeting: 'नमस्कार! मी कशी मदत करू?',
+    fallback: 'क्षमस्व, इंटरनेटशी कनेक्ट होण्यात समस्या येत आहे।'
+  },
+  ta: {
+    name: 'Tamil',
+    nativePrompt: 'தமிழில் மட்டுமே பதிலளியுங்கள். எளிய மொழியைப் பயன்படுத்துங்கள்.',
+    greeting: 'வணக்கம்! நான் எப்படி உதவ முடியும்?',
+    fallback: 'மன்னிக்கவும், இணையத்துடன் இணைப்பதில் சிக்கல் உள்ளது.'
+  },
+  gu: {
+    name: 'Gujarati',
+    nativePrompt: 'ફક્ત ગુજરાતીમાં જવાબ આપો। સરળ ભાષા વાપરો।',
+    greeting: 'નમસ્તે! હું કેવી રીતે મદદ કરી શકું?',
+    fallback: 'માફ કરજો, ઇન્ટરનેટ સાથે જોડાવામાં સમસ્યા છે.'
+  },
+  kn: {
+    name: 'Kannada',
+    nativePrompt: 'ಕೇವಲ ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಪ್ರತಿಕ್ರಿಯಿಸಿ. ಸರಳ ಭಾಷೆ ಬಳಸಿ.',
+    greeting: 'ನಮಸ್ಕಾರ! ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?',
+    fallback: 'ಕ್ಷಮಿಸಿ, ಇಂಟರ್ನೆಟ್‌ಗೆ ಸಂಪರ್ಕಿಸಲು ಸಮಸ್ಯೆಯಿದೆ.'
+  },
+  ml: {
+    name: 'Malayalam',
+    nativePrompt: 'മലയാളത്തിൽ മാത്രം മറുപടി നൽകുക. ലളിതമായ ഭാഷ ഉപയോഗിക്കുക.',
+    greeting: 'നമസ്കാരം! ഞാൻ എങ്ങനെ സഹായിക്കാം?',
+    fallback: 'ക്ഷമിക്കണം, ഇന്റർനെറ്റിലേക്ക് കണക്റ്റ് ചെയ്യാൻ പ്രശ്‌നമുണ്ട്.'
+  },
+  pa: {
+    name: 'Punjabi',
+    nativePrompt: 'ਕੇਵਲ ਪੰਜਾਬੀ ਵਿੱਚ ਜਵਾਬ ਦਿਓ। ਸੌਖੀ ਭਾਸ਼ਾ ਵਰਤੋ।',
+    greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?',
+    fallback: 'ਮਾਫ਼ ਕਰਨਾ, ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜਨ ਵਿੱਚ ਸਮੱਸਿਆ ਹੈ।'
+  },
+  or: {
+    name: 'Odia',
+    nativePrompt: 'କେବଳ ଓଡ଼ିଆରେ ଉତ୍ତର ଦିଅ। ସରଳ ଭାଷା ବ୍ୟବହାର କର।',
+    greeting: 'ନମସ୍କାର! ମୁଁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?',
+    fallback: 'କ୍ଷମା କରନ୍ତୁ, ଇଣ୍ଟରନେଟ୍ ସହିତ ସଂଯୋଗ କରିବାରେ ସମସ୍ୟା ହେଉଛି।'
+  },
+  as: {
+    name: 'Assamese',
+    nativePrompt: 'কেৱল অসমীয়াত উত্তৰ দিয়ক। সৰল ভাষা ব্যৱহাৰ কৰক।',
+    greeting: 'নমস্কাৰ! মই কেনেদৰে সহায় কৰিব পাৰো?',
+    fallback: 'ক্ষমা কৰিব, ইণ্টাৰনেটৰ সৈতে সংযোগ কৰোঁতে সমস্যা হৈছে।'
+  },
+  ur: {
+    name: 'Urdu',
+    nativePrompt: 'صرف اردو میں جواب دیں۔ آسان زبان استعمال کریں۔',
+    greeting: 'نمستے! میں کیسے مدد کر سکتا ہوں؟',
+    fallback: 'معذرت، انٹرنیٹ سے جڑنے میں مسئلہ ہے۔'
+  },
+  sd: {
+    name: 'Sindhi',
+    nativePrompt: 'صرف سنڌي ۾ جواب ڏيو. آسان ٻولي استعمال ڪريو.',
+    greeting: 'نمستو! مانھنجاڙي ڪيئن مدد ڪري سگهان ٿو؟',
+    fallback: 'معاف ڪجو، انٽرنيٽ سان ڳنڍڻ ۾ مسئلو آهي.'
+  },
+  sa: {
+    name: 'Sanskrit',
+    nativePrompt: 'केवलं संस्कृते उत्तरं ददातु। सरलं भाषां प्रयोगयतु।',
+    greeting: 'नमस्ते! अहं कथं साहाय्यं कर्तुं शक्नोमि?',
+    fallback: 'क्षम्यताम्, इण्टरनेट् सह सम्पर्कः कठिनः अस्ति।'
+  },
+  kok: {
+    name: 'Konkani',
+    nativePrompt: 'फकत कोंकणींत जाप दियात। सादी भास वापरात।',
+    greeting: 'नमस्कार! मी कसो मजत करूं?',
+    fallback: 'माफ कर, इंटरनेटाकडेन जोडपाक त्रास जाता।'
+  },
+  doi: {
+    name: 'Dogri',
+    nativePrompt: 'सिर्फ डोगरी च جواب देओ। सद्दी भाषा वर्तो।',
+    greeting: 'नमस्ते! मैं किस तरहां मदद करी सकदा?',
+    fallback: 'माफ करना, इंटरनेट नाल जुड्डे च समस्या है।'
+  },
+  sat: {
+    name: 'Santali',
+    nativePrompt: 'ᱥᱩᱫᱩᱨ ᱥᱟᱱᱛᱟᱲᱤ ᱛᱮ ᱜᱮ ᱛᱮᱞᱟ ᱮᱢ ᱢᱮ। ᱥᱟᱫᱟ ᱯᱟᱹᱨᱥᱤ ᱵᱮᱵᱷᱟᱨ ᱢᱮ।',
+    greeting: 'ᱡᱳᱦᱟᱨ! ᱟᱹᱭ ᱪᱮᱫ ᱞᱮᱠᱟ ᱜᱚᱲᱚ ᱮᱢ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ?',
+    fallback: 'ᱤᱠᱟᱹ ᱢᱮ, ᱤᱱᱴᱚᱨᱱᱮᱴ ᱥᱟᱞᱟᱜ ᱡᱩᱲᱟᱹᱣ ᱨᱮ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱢᱮᱱᱟᱜᱼᱟ।'
+  },
+  ks: {
+    name: 'Kashmiri',
+    nativePrompt: 'صرف کٲشُر مَنز جواب دیو۔ آسان زانٕچ استعمال کریو۔',
+    greeting: 'نمستے! چھاہ کیس ہیتھ کَہن مدتھ کَرن؟',
+    fallback: 'معاف، انٹرنیٹ سیتھ جودھتھ منز مسئلہ چھ۔'
+  },
+  ne: {
+    name: 'Nepali',
+    nativePrompt: 'केवल नेपालीमा मात्र उत्तर दिनुहोस्। सजिलो भाषा प्रयोग गर्नुहोस्।',
+    greeting: 'नमस्ते! म कसरी मद्दत गर्न सक्छु?',
+    fallback: 'माफ गर्नुहोस्, इन्टरनेटमा जोड्न समस्या भएको छ।'
+  },
 };
 
 // --- API Routes ---
@@ -147,113 +256,109 @@ app.post('/api/schemes/find', async (req, res) => {
 });
 
 // 3. Chat / Advisory (Gemini) - Supports text and images
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', upload.none(), async (req, res) => {
   try {
     if (!ai) {
       res.status(500).json({ error: 'AI service not configured' });
       return;
     }
 
-    // Handle both JSON and FormData
+    // Handle both JSON and FormData (multer handles multipart/form-data)
     let query: string = '';
     let userContext: any = {};
     let imageBase64: string | undefined;
 
-    if (req.is('application/json')) {
+    const contentType = req.headers['content-type'] || '';
+    
+    if (contentType.includes('application/json')) {
       query = req.body.query || '';
       userContext = req.body.userContext || {};
-    } else if (req.is('multipart/form-data')) {
+    } else {
+      // FormData - multer has already parsed it
       query = req.body.query || '';
-      userContext = JSON.parse(req.body.userContext || '{}');
+      try {
+        userContext = typeof req.body.userContext === 'string' 
+          ? JSON.parse(req.body.userContext) 
+          : (req.body.userContext || {});
+      } catch (e) {
+        console.error('Failed to parse userContext:', e);
+        userContext = {};
+      }
       imageBase64 = req.body.image;
     }
 
     const { state, district, land_size, crops, preferred_language } = userContext || {};
 
+    console.log('Chat request:', { 
+      query: query?.substring(0, 50), 
+      preferred_language, 
+      contentType: contentType.substring(0, 30) 
+    });
+
     // PRIORITY: Use user's preferred language from their profile first
     // Only auto-detect from query if no preferred_language is provided
-    let langCode = '';
+    let langCode = 'en';
     
-    if (preferred_language) {
-      // User has a preference - use it
+    if (preferred_language && languageConfig[preferred_language]) {
       langCode = preferred_language;
     } else {
       // Auto-detect from query if no preference
-      // Check for Hindi/Devanagari script
-      if (/[\u0900-\u097F]/.test(query)) {
-        langCode = 'hi';
-      } else // Check for Bengali
-      if (/[\u0980-\u09FF]/.test(query)) {
-        langCode = 'bn';
-      } else // Check for Telugu
-      if (/[\u0C00-\u0C7F]/.test(query)) {
-        langCode = 'te';
-      } else // Check for Tamil
-      if (/[\u0B80-\u0BFF]/.test(query)) {
-        langCode = 'ta';
-      } else // Check for Gujarati
-      if (/[\u0A80-\u0AFF]/.test(query)) {
-        langCode = 'gu';
-      } else // Check for Kannada
-      if (/[\u0C80-\u0CFF]/.test(query)) {
-        langCode = 'kn';
-      } else // Check for Malayalam
-      if (/[\u0D00-\u0D7F]/.test(query)) {
-        langCode = 'ml';
-      } else // Check for Punjabi
-      if (/[\u0A00-\u0A7F]/.test(query)) {
-        langCode = 'pa';
-      } else // Check for Odia
-      if (/[\u0B00-\u0B7F]/.test(query)) {
-        langCode = 'or';
-      } else // Check for Assamese
-      if (/[\u0980-\u09FF]/.test(query)) {
-        langCode = 'as';
-      } else // Check for Urdu
-      if (/[\u0600-\u06FF]/.test(query)) {
-        langCode = 'ur';
-      } else {
-        langCode = 'en';
+      const scriptPatterns: [RegExp, string][] = [
+        [/[\u0900-\u097F]/, 'hi'],      // Devanagari (Hindi, Marathi, Sanskrit, etc.)
+        [/[\u0980-\u09FF]/, 'bn'],      // Bengali (also Assamese)
+        [/[\u0C00-\u0C7F]/, 'te'],      // Telugu
+        [/[\u0B80-\u0BFF]/, 'ta'],      // Tamil
+        [/[\u0A80-\u0AFF]/, 'gu'],      // Gujarati
+        [/[\u0C80-\u0CFF]/, 'kn'],      // Kannada
+        [/[\u0D00-\u0D7F]/, 'ml'],      // Malayalam
+        [/[\u0A00-\u0A7F]/, 'pa'],      // Punjabi
+        [/[\u0B00-\u0B7F]/, 'or'],      // Odia
+        [/[\u0600-\u06FF]/, 'ur'],      // Arabic script (Urdu, Sindhi, Kashmiri)
+        [/[\u11300-\u1137F]/, 'sat'],   // Ol Chiki (Santali)
+      ];
+
+      for (const [pattern, code] of scriptPatterns) {
+        if (pattern.test(query)) {
+          langCode = code;
+          break;
+        }
       }
     }
     
-    const language = languageNames[langCode] || 'English';
-    console.log('Language:', language, '(user preference:', preferred_language, ')');
+    const langInfo = languageConfig[langCode] || languageConfig.en;
+    console.log('Language:', langInfo.name, '(code:', langCode, ', user preference:', preferred_language, ')');
     
     // Build context for AI - CRITICAL: Always respond in user's preferred language
     let contextInfo = `
-      You are Kisan AI Assistant, a friendly agricultural advisor for Indian farmers.
-      
-      STRICT: Always respond in ${language} language only.
-      ${langCode === 'hi' ? 'जवाब हिंदी में दें।' : langCode === 'bn' ? 'উত্তর বাংলায় দিন।' : langCode === 'ta' ? 'பதில் தமிழில் அளிக்கவும்.' : 'Respond in the language user prefers.'}
-      
-      - If the user's preferred language is Hindi, respond ONLY in Hindi (हिंदी में जवाब दें)
-      - If the user's preferred language is Bengali, respond ONLY in Bengali (বাংলায় উত্তর দিন)
-      - If the user's preferred language is Tamil, respond ONLY in Tamil (தமிழில் பதில் அளிக்கவும்)
-      - If the user's preferred language is Telugu, respond ONLY in Telugu (తెలుగులో స్పందించండి)
-      - If the user's preferred language is Gujarati, respond ONLY in Gujarati (ગુજરાતીમાં જવાબ આપો)
-      - If the user's preferred language is Kannada, respond ONLY in Kannada (ಕನ್ನಡದಲ್ಲಿ ಪ್ರತಿಕ್ರಿಯೆ ನೀಡಿ)
-      - If the user's preferred language is Malayalam, respond ONLY in Malayalam (മലയാളത്തില്‍ മറുപടി നല്‍കുക)
-      - If the user's preferred language is Punjabi, respond ONLY in Punjabi (ਪੰਜਾਬੀ ਵਿਚ ਜਵਾਬ ਦਿਓ)
-      - If the user's preferred language is Odia, respond ONLY in Odia (ଓଡ଼ିଆ ରେ ଉତ୍ତਰ ਦਿਓ)
-      - If the user's preferred language is English, respond in English
-      
-      NEVER respond in a different language than ${language}.
-      
-      FORMATTING RULES (IMPORTANT):
-      - Use PLAIN TEXT ONLY - never use any Markdown formatting
-      - Do NOT use bold text (**text**)
-      - Do NOT use italics (*text* or _text_)
-      - Do NOT use headings (# Heading)
-      - Do NOT use bullet points with symbols like *, -, or numbers
-      - Do NOT use code blocks or any formatting symbols
-      - Just write simple, clean paragraphs in plain text
-      
-      Use simple words and avoid technical jargon.
-      Be friendly and helpful like a fellow farmer.
-      
-      User location: ${state || 'Not set'}, ${district || 'Not set'}
-      User profile: Land: ${land_size || 'Not set'} acres, Crops: ${crops?.join(', ') || 'Not set'}
+You are Kisan AI Assistant, a friendly agricultural advisor for Indian farmers.
+
+CRITICAL LANGUAGE INSTRUCTION:
+- ${langInfo.nativePrompt}
+- NEVER respond in a different language.
+- If the user asks in a mixed language, respond ONLY in ${langInfo.name}.
+
+FORMATTING RULES (IMPORTANT):
+- Use PLAIN TEXT ONLY - never use any Markdown formatting
+- Do NOT use bold text (**text**)
+- Do NOT use italics (*text* or _text_)
+- Do NOT use headings (# Heading)
+- Do NOT use bullet points with symbols like *, -, or numbers
+- Do NOT use code blocks or any formatting symbols
+- Just write simple, clean paragraphs in plain text
+
+COMMUNICATION STYLE:
+- Use simple words and avoid technical jargon
+- Be friendly and helpful like a fellow farmer
+- Give practical, actionable advice
+- Use local farming terminology when appropriate
+- Keep responses concise but informative
+
+USER CONTEXT:
+- Location: ${state || 'Not set'}, ${district || 'Not set'}
+- Land Size: ${land_size || 'Not set'} acres
+- Crops: ${crops?.join(', ') || 'Not set'}
+
+Remember: You are speaking to an Indian farmer who may have limited technical knowledge. Explain things simply and clearly in ${langInfo.name}.
     `;
 
     // If there's an image, analyze it for plant disease/crop issues
@@ -263,11 +368,25 @@ app.post('/api/chat', async (req, res) => {
       // Remove data URL prefix if present
       const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
       
+      const imagePrompt = contextInfo + `
+
+IMAGE ANALYSIS TASK:
+Analyze this image for:
+1. Plant diseases (fungal, bacterial, viral)
+2. Pest damage (insects, mites, nematodes)
+3. Nutrient deficiencies (nitrogen, phosphorus, potassium, micronutrients)
+4. Water stress (drought, waterlogging)
+5. Overall crop health
+
+If this is not a plant/crop image, politely inform the farmer.
+
+Provide practical solutions and recommendations suitable for Indian farming conditions.`;
+
       contents = [
         {
           role: 'user',
           parts: [
-            { text: contextInfo + '\n\nPlease analyze this image and tell me about any visible plant diseases, pest damage, nutrient deficiencies, or crop health issues. If this is not a plant/crop image, please let me know.' },
+            { text: imagePrompt },
             {
               inlineData: {
                 mimeType: 'image/jpeg',

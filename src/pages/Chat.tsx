@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useApp, INDIAN_LANGUAGES, getLanguageName, getSpeechLang, getRecognitionLang } from '../context/AppContext';
+import { useApp, INDIAN_LANGUAGES, getLanguageName, getSpeechLang, getRecognitionLang, t } from '../context/AppContext';
 import VoiceInput from '../components/VoiceInput';
-import { Send, User, Bot, ArrowLeft, Image, X, Globe, Camera } from 'lucide-react';
+import { Send, User, Bot, ArrowLeft, Image, X, Globe, Camera, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Message {
@@ -14,16 +14,23 @@ interface Message {
 export default function Chat() {
   const { user, setUser } = useApp();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: `Namaste ${user?.name}! How can I help you with your farm today? You can also send me photos of your crops for disease diagnosis!`, sender: 'bot' }
-  ]);
+  const [chatLanguage, setChatLanguage] = useState(user?.preferred_language || 'en');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [chatLanguage, setChatLanguage] = useState(user?.preferred_language || 'en');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
+
+  // Initialize welcome message based on language
+  useEffect(() => {
+    const welcomeMsg = t(chatLanguage, 'welcome');
+    const userName = user?.name || '';
+    const personalizedWelcome = welcomeMsg.replace('Namaste', `Namaste ${userName}`).replace('नमस्ते', `नमस्ते ${userName}`);
+    setMessages([{ id: 1, text: personalizedWelcome, sender: 'bot' }]);
+  }, [chatLanguage, user?.name]);
 
   // Update chat language when user preference changes
   useEffect(() => {
@@ -31,6 +38,17 @@ export default function Chat() {
       setChatLanguage(user.preferred_language);
     }
   }, [user?.preferred_language]);
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const currentLang = chatLanguage;
 
@@ -119,18 +137,20 @@ export default function Chat() {
       
       // TTS for bot response
       if ('speechSynthesis' in window && data.response) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+        
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.lang = getSpeechLang(currentLang);
         utterance.rate = 0.9;
+        utterance.pitch = 1;
         window.speechSynthesis.speak(utterance);
       }
 
     } catch (error) {
       setMessages(prev => [...prev, { 
         id: Date.now() + 1, 
-        text: currentLang === 'hi' 
-          ? 'क्षमा करें, मुझे इंटरनेट से जुड़ने में समस्या हो रही है।' 
-          : 'Sorry, I am having trouble connecting to the internet.', 
+        text: t(currentLang, 'connecting'), 
         sender: 'bot' 
       }]);
     } finally {
@@ -149,11 +169,52 @@ export default function Chat() {
           <Bot size={28} />
         </div>
         <div className="flex-1">
-          <h1 className="font-extrabold text-lg text-slate-800 tracking-tight">Kisan Assistant</h1>
+          <h1 className="font-extrabold text-lg text-slate-800 tracking-tight">{t(currentLang, 'assistant')}</h1>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-500/50"></span>
-            Online
+            {t(currentLang, 'online')}
           </div>
+        </div>
+        
+        {/* Language Selector */}
+        <div className="relative" ref={langMenuRef}>
+          <button 
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 border border-emerald-200/60 transition-all"
+          >
+            <Globe size={18} />
+            <span className="text-sm font-medium hidden sm:inline">
+              {INDIAN_LANGUAGES.find(l => l.code === currentLang)?.native || 'English'}
+            </span>
+            <ChevronDown size={16} className={`transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showLangMenu && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/60 z-50 max-h-80 overflow-y-auto">
+              <div className="p-2">
+                {INDIAN_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => handleLanguageChange(lang.code)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                      currentLang === lang.code 
+                        ? 'bg-emerald-100 text-emerald-700 font-semibold' 
+                        : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <span className="text-lg">{lang.flag}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{lang.native}</div>
+                      <div className="text-xs text-slate-500">{lang.name}</div>
+                    </div>
+                    {currentLang === lang.code && (
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -170,6 +231,7 @@ export default function Chat() {
                   ? 'bg-emerald-600 text-white rounded-tr-sm shadow-emerald-600/20'
                   : 'bg-white border border-slate-200/60 text-slate-800 rounded-tl-sm'
               }`}
+              style={{ direction: ['ur', 'sd', 'ks'].includes(currentLang) ? 'rtl' : 'ltr' }}
             >
               {msg.image && (
                 <div className="mb-3">
@@ -235,7 +297,7 @@ export default function Chat() {
           <button
             onClick={() => fileInputRef.current?.click()}
             className="p-4 bg-emerald-100 text-emerald-700 rounded-2xl hover:bg-emerald-200 border border-emerald-200/60 shadow-sm transition-all active:scale-95"
-            title={currentLang === 'hi' ? 'फोटो लें या अपलोड करें' : 'Take or upload photo'}
+            title={t(currentLang, 'takePhoto')}
           >
             <Camera size={24} />
           </button>
@@ -245,8 +307,9 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={currentLang === 'hi' ? 'संदेश लिखें...' : 'Type a message...'}
+            placeholder={t(currentLang, 'placeholder')}
             className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-200/60 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-base transition-all"
+            style={{ direction: ['ur', 'sd', 'ks'].includes(currentLang) ? 'rtl' : 'ltr' }}
           />
           <button
             onClick={() => handleSend()}
