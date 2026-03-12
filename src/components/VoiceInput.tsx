@@ -3,7 +3,7 @@ import { Mic, MicOff } from 'lucide-react';
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
-  language?: 'en-US' | 'hi-IN';
+  language?: string;
   isListening?: boolean;
   setIsListening?: (listening: boolean) => void;
 }

@@ -9,8 +9,78 @@ export interface UserProfile {
   land_size: string;
   crops: string[];
   income_category: string;
-  preferred_language: 'en' | 'hi';
+  preferred_language: string;
 }
+
+// All Indian Languages
+export const INDIAN_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English', flag: '🇮🇳' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'bn', name: 'Bengali', native: 'বাংলা', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
+  { code: 'mr', name: 'Marathi', native: 'मराठी', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', flag: '🇮🇳' },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', flag: '🇮🇳' },
+  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
+  { code: 'or', name: 'Odia', native: 'ଓଡ଼ିଆ', flag: '🇮🇳' },
+  { code: 'as', name: 'Assamese', native: 'অসমীয়া', flag: '🇮🇳' },
+  { code: 'ur', name: 'Urdu', native: 'اردو', flag: '🇮🇳' },
+  { code: 'sd', name: 'Sindhi', native: 'سنڌي', flag: '🇮🇳' },
+  { code: 'sa', name: 'Sanskrit', native: 'संस्कृतम्', flag: '🇮🇳' },
+  { code: 'konkani', name: 'Konkani', native: 'कोंकणी', flag: '🇮🇳' },
+  { code: 'dogri', name: 'Dogri', native: 'डोगरी', flag: '🇮🇳' },
+  { code: 'santali', name: 'Santali', native: 'संताली', flag: '🇮🇳' },
+  { code: 'kashmiri', name: 'Kashmiri', native: 'कश्मीरी', flag: '🇮🇳' },
+  { code: 'nepali', name: 'Nepali', native: 'नेपाली', flag: '🇮🇳' },
+];
+
+// Get language display name
+export const getLanguageName = (code: string): string => {
+  const lang = INDIAN_LANGUAGES.find(l => l.code === code);
+  return lang ? `${lang.flag} ${lang.native}` : code;
+};
+
+// Get speech synthesis language code
+export const getSpeechLang = (code: string): string => {
+  const langMap: Record<string, string> = {
+    'en': 'en-IN',
+    'hi': 'hi-IN',
+    'bn': 'bn-IN',
+    'te': 'te-IN',
+    'mr': 'mr-IN',
+    'ta': 'ta-IN',
+    'gu': 'gu-IN',
+    'kn': 'kn-IN',
+    'ml': 'ml-IN',
+    'pa': 'pa-IN',
+    'or': 'or-IN',
+    'as': 'as-IN',
+    'ur': 'ur-IN',
+  };
+  return langMap[code] || 'en-IN';
+};
+
+// Get speech recognition language code
+export const getRecognitionLang = (code: string): string => {
+  const langMap: Record<string, string> = {
+    'en': 'en-IN',
+    'hi': 'hi-IN',
+    'bn': 'bn-IN',
+    'te': 'te-IN',
+    'mr': 'mr-IN',
+    'ta': 'ta-IN',
+    'gu': 'gu-IN',
+    'kn': 'kn-IN',
+    'ml': 'ml-IN',
+    'pa': 'pa-IN',
+    'or': 'or-IN',
+    'as': 'as-IN',
+    'ur': 'ur-IN',
+  };
+  return langMap[code] || 'en-IN';
+};
 
 interface AppContextType {
   user: UserProfile | null;
