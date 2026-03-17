@@ -161,15 +161,15 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen bg-slate-100">
       {/* Header */}
-      <div className="bg-white p-4 shadow-sm flex items-center gap-4 border-b border-slate-200/60 z-10">
-        <button onClick={() => navigate(-1)} className="p-2.5 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors border border-slate-200/60">
-          <ArrowLeft size={20} className="text-slate-700" />
+      <div className="bg-white p-3 sm:p-4 shadow-sm flex items-center gap-2 sm:gap-4 border-b border-slate-200/60 z-10">
+        <button onClick={() => navigate(-1)} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors border border-slate-200/60 flex-shrink-0">
+          <ArrowLeft size={18} className="text-slate-700" />
         </button>
-        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-inner">
-          <Bot size={28} />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-inner flex-shrink-0">
+          <Bot size={22} className="sm:w-7 sm:h-7" />
         </div>
-        <div className="flex-1">
-          <h1 className="font-extrabold text-lg text-slate-800 tracking-tight">{t(currentLang, 'assistant')}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-extrabold text-base sm:text-lg text-slate-800 tracking-tight truncate">{t(currentLang, 'assistant')}</h1>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-500/50"></span>
             {t(currentLang, 'online')}
@@ -180,35 +180,35 @@ export default function Chat() {
         <div className="relative" ref={langMenuRef}>
           <button 
             onClick={() => setShowLangMenu(!showLangMenu)}
-            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 border border-emerald-200/60 transition-all"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 border border-emerald-200/60 transition-all"
           >
-            <Globe size={18} />
-            <span className="text-sm font-medium hidden sm:inline">
+            <Globe size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-xs sm:text-sm font-medium hidden sm:inline max-w-[80px] truncate">
               {INDIAN_LANGUAGES.find(l => l.code === currentLang)?.native || 'English'}
             </span>
-            <ChevronDown size={16} className={`transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
           </button>
           
           {showLangMenu && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/60 z-50 max-h-80 overflow-y-auto">
+            <div className="absolute right-0 top-full mt-2 w-56 sm:w-64 bg-white rounded-2xl shadow-xl border border-slate-200/60 z-50 max-h-[70vh] overflow-y-auto">
               <div className="p-2">
                 {INDIAN_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => handleLanguageChange(lang.code)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                    className={`w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 rounded-xl text-left transition-all ${
                       currentLang === lang.code 
                         ? 'bg-emerald-100 text-emerald-700 font-semibold' 
                         : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <span className="text-lg">{lang.flag}</span>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{lang.native}</div>
-                      <div className="text-xs text-slate-500">{lang.name}</div>
+                    <span className="text-base sm:text-lg">{lang.flag}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs sm:text-sm font-medium truncate">{lang.native}</div>
+                      <div className="text-[10px] sm:text-xs text-slate-500">{lang.name}</div>
                     </div>
                     {currentLang === lang.code && (
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
                     )}
                   </button>
                 ))}
@@ -278,8 +278,8 @@ export default function Chat() {
       )}
 
       {/* Input Area */}
-      <div className="p-4 bg-white border-t border-slate-200/60 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
-        <div className="flex items-center gap-3">
+      <div className="p-2 sm:p-4 bg-white border-t border-slate-200/60 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
+        <div className="flex items-center gap-2 sm:gap-3">
           <VoiceInput 
             onTranscript={(text) => handleSend(text)} 
             language={getRecognitionLang(currentLang) as 'en-US' | 'hi-IN' | 'bn-IN' | 'te-IN' | 'mr-IN' | 'ta-IN' | 'gu-IN' | 'kn-IN' | 'ml-IN' | 'pa-IN' | 'or-IN' | 'as-IN' | 'ur-IN'}
@@ -296,10 +296,10 @@ export default function Chat() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-4 bg-emerald-100 text-emerald-700 rounded-2xl hover:bg-emerald-200 border border-emerald-200/60 shadow-sm transition-all active:scale-95"
+            className="p-2.5 sm:p-4 bg-emerald-100 text-emerald-700 rounded-xl sm:rounded-2xl hover:bg-emerald-200 border border-emerald-200/60 shadow-sm transition-all active:scale-95 flex-shrink-0"
             title={t(currentLang, 'takePhoto')}
           >
-            <Camera size={24} />
+            <Camera size={20} className="sm:w-6 sm:h-6" />
           </button>
           
           <input
@@ -308,15 +308,15 @@ export default function Chat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder={t(currentLang, 'placeholder')}
-            className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-200/60 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-base transition-all"
+            className="flex-1 p-2.5 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200/60 focus:ring-2 sm:focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm sm:text-base transition-all min-w-0"
             style={{ direction: ['ur', 'sd', 'ks'].includes(currentLang) ? 'rtl' : 'ltr' }}
           />
           <button
             onClick={() => handleSend()}
             disabled={(!input.trim() && !selectedImage) || isLoading}
-            className="p-4 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+            className="p-2.5 sm:p-4 bg-emerald-600 text-white rounded-xl sm:rounded-2xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-600/20 transition-all active:scale-95 flex-shrink-0"
           >
-            <Send size={24} />
+            <Send size={20} className="sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>

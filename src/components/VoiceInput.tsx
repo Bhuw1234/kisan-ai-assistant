@@ -65,14 +65,14 @@ export default function VoiceInput({
   return (
     <button
       onClick={toggleListening}
-      className={`p-4 rounded-2xl transition-all active:scale-95 ${
+      className={`p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all active:scale-95 flex-shrink-0 ${
         isListening 
-          ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30 ring-4 ring-red-500/20' 
+          ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30 ring-2 sm:ring-4 ring-red-500/20' 
           : 'bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-200 border border-emerald-200/60'
       }`}
       aria-label={isListening ? 'Stop listening' : 'Start listening'}
     >
-      {isListening ? <MicOff size={24} /> : <Mic size={24} />}
+      {isListening ? <MicOff size={20} className="sm:w-6 sm:h-6" /> : <Mic size={20} className="sm:w-6 sm:h-6" />}
     </button>
   );
 }
